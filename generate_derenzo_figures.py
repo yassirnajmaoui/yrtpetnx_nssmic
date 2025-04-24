@@ -2,16 +2,12 @@
 import SimpleITK as sitk
 import numpy as np
 import os
-import yn_tools.display as ydisp
 import matplotlib.pyplot as plt
+import yn_tools.display as ydisp
 
-# %% ======================== Mini-Derenzo section ========================
-
-# TODO: Generate line plots for Derenzo phantom to compare YRT-PET to URT and MOLAR
-
-#iteration_range = range(0,7) # Full, for PSNR/iteration calculation
-iteration_range = range(6,7)
-scan_duration = 599951 # in ms, around 10 minutes
+# iteration_range = range(0,7) # Full, for PSNR/iteration calculation
+iteration_range = range(6, 7)
+scan_duration = 599951  # in ms, around 10 minutes
 average_CijNorm = 0.923966
 
 # %% Read URT's images
@@ -21,7 +17,7 @@ urt_recon_paths = list()
 urt_recon_images = list()
 urt_recon_images_np = list()
 for iteration in iteration_range:
-    urt_recon_path = os.path.join(urt_recon_dir, f'post_recon-{iteration+1}.nii')
+    urt_recon_path = os.path.join(urt_recon_dir, f"post_recon-{iteration+1}.nii")
     urt_recon_paths.append(urt_recon_path)
     urt_recon_image = sitk.ReadImage(urt_recon_path)
     urt_recon_image = urt_recon_image[::-1, :, ::-1]
@@ -53,7 +49,7 @@ yrtpet_recon_dir = (
 yrtpet_recon_paths = list()
 
 for iteration in iteration_range:
-    if iteration+1 == 7:
+    if iteration + 1 == 7:
         yrtpet_recon_paths.append(os.path.join(yrtpet_recon_dir, "recon_image.nii.gz"))
     else:
         yrtpet_recon_paths.append(
@@ -69,9 +65,11 @@ for i in range(len(yrtpet_recon_paths)):
 # %% Line plot
 
 fig_lineplot = ydisp.matshow_images_with_lineplot(
-    [urt_recon_images[-1] / average_CijNorm,
-     molar_recon_images[-1],
-     yrtpet_recon_images[-1] * scan_duration * average_CijNorm],
+    [
+        urt_recon_images[-1] / average_CijNorm,
+        molar_recon_images[-1],
+        yrtpet_recon_images[-1] * scan_duration * average_CijNorm,
+    ],
     zslice=474,
     x1=260,
     y1=414,
@@ -80,10 +78,11 @@ fig_lineplot = ydisp.matshow_images_with_lineplot(
     xlim=(235, 395),
     ylim=(297, 467),
     labels=["URT", "MOLAR", "YRT-PET"],
+    image_label_size=12,
     normalize=False,
     vmaxs=[8e5, 8e5, 8e5],
     fig_height=6,
     margin_bottom=0.08,
-    margin_left=0.07
+    margin_left=0.07,
 )
 plt.show()
