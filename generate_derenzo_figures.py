@@ -4,11 +4,25 @@ import numpy as np
 import os
 import matplotlib.pyplot as plt
 import yn_tools.display as ydisp
+import yn_tools.radioactive as yrad
 
 # iteration_range = range(0,7) # Full, for PSNR/iteration calculation
 iteration_range = range(6, 7)
-scan_duration = 599951  # in ms, around 10 minutes
-average_CijNorm = 0.923966
+scan_duration = 599.951  # in s, around 10 minutes
+molar_global = 3.407e-9
+positron_fraction = 0.967
+
+# %% Calculate decay factors
+# Injection time: 14:21:00
+# Scan start time: 14:59:04
+elapsed_injectiontime_to_scanstart = 38 * 60 + 4
+decay_factor_injectiontime_to_scanstart = yrad.decay(elapsed_injectiontime_to_scanstart)
+decay_factor_injectiontime_to_scanend = yrad.decay(
+    elapsed_injectiontime_to_scanstart + scan_duration
+)
+decay_factor_scanstart_to_scanend = yrad.decay(scan_duration)
+decay_factor_within_frame = yrad.decay_within_frame(0, scan_duration)
+livetime_factor = 0.957977  # From the MOLAR file
 
 # %% Read URT's images
 
@@ -64,25 +78,48 @@ for i in range(len(yrtpet_recon_paths)):
 
 # %% Line plot
 
+unit_scale = 1.0 / 1000000.0  # Turn Bq to MBq
+
+# Apply decay and livetime corrections
+urt_recon_to_show = (
+    urt_recon_images[-1]
+    * decay_factor_within_frame
+    / decay_factor_injectiontime_to_scanend
+    / livetime_factor
+    / positron_fraction
+) * unit_scale
+molar_recon_to_show = (
+    molar_recon_images[-1] / decay_factor_injectiontime_to_scanend
+) * unit_scale
+yrtpet_recon_to_show = (
+    yrtpet_recon_images[-1]
+    / (scan_duration * molar_global)
+    / decay_factor_injectiontime_to_scanend
+) * unit_scale
+
+xlim = (235, 395)
+ylim = (297, 467)
+
 fig_lineplot = ydisp.matshow_images_with_lineplot(
     [
-        urt_recon_images[-1] / average_CijNorm,
-        molar_recon_images[-1],
-        yrtpet_recon_images[-1] * scan_duration * average_CijNorm,
+        urt_recon_to_show,
+        molar_recon_to_show,
+        yrtpet_recon_to_show,
     ],
-    zslice=474,
+    zslice=460,
     x1=260,
     y1=414,
     x2=250,
     y2=363,
-    xlim=(235, 395),
-    ylim=(297, 467),
+    xlim=xlim,
+    ylim=ylim,
     labels=["URT", "MOLAR", "YRT-PET"],
     image_label_size=12,
     normalize=False,
-    vmaxs=[8e5, 8e5, 8e5],
+    vmaxs=[0.8, 0.8, 0.8],
     fig_height=6,
     margin_bottom=0.08,
     margin_left=0.07,
+    ylabel="Activity [MBq/mL]",
 )
 plt.show()
