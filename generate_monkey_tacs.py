@@ -141,7 +141,9 @@ if not os.path.isfile(yrtpet_recon_images_np_path):
 
     np.savez_compressed(yrtpet_recon_images_np_path, yrtpet_recon_images_np)
 else:
-    yrtpet_recon_images_np = np.load(yrtpet_recon_images_np_path)
+    print("Reading YRT-PET images...")
+    with np.load(yrtpet_recon_images_np_path) as data:
+        yrtpet_recon_images_np = data['arr_0']
 
 # %% Read the PET images from MOLAR
 
@@ -173,11 +175,17 @@ if not os.path.isfile(molar_recon_images_np_path):
 
     np.savez_compressed(molar_recon_images_np_path, molar_recon_images_np)
 else:
-    molar_recon_images_np = np.load(molar_recon_images_np_path)
+    print("Reading MOLAR images...")
+    with np.load(molar_recon_images_np_path) as data:
+        molar_recon_images_np = data['arr_0']
 
 # %% Resample the masks in the PET grid
 
-pet_reference_image = yrtpet_recon_images[0]  # For resampling only
+# For resampling only
+if len(yrtpet_recon_images) > 1:
+    pet_reference_image = yrtpet_recon_images[0]
+else:
+    pet_reference_image = None
 roi_full_image_np = np.zeros((990, 600, 600), dtype=np.float32)
 
 roi_images_resampled = list()
@@ -209,6 +217,7 @@ for i in range(num_rois):
                 )
             ]
         )
+        assert pet_reference_image is not None
         roi_image_resampled = yimg.resample_to_reference(
             roi_full_image, pet_reference_image
         )
@@ -222,7 +231,6 @@ for i in range(num_rois):
         roi_images_resampled.append(roi_image_resampled)
         roi_image_resampled_np = sitk.GetArrayViewFromImage(roi_image_resampled)
         roi_images_resampled_np.append(roi_image_resampled_np)
-        pass
 
 
 # %% Generate Time-Activity-Curves of the PET images from YRT-PET and MOLAR
@@ -255,5 +263,4 @@ for roi_i in range(num_rois):
 
             np.save(roi_tac_path, roi_tacs[roi_i])
         else:
-            pass
             roi_tacs[roi_i] = np.load(roi_tac_path)
