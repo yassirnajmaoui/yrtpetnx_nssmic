@@ -12,6 +12,8 @@ scan_duration = 599.951  # in s, around 10 minutes
 molar_global = 3.407e-9
 positron_fraction = 0.967
 
+figures_dir = "/home1/yn257/work/data/yrtpetnx_nssmic/figures"
+
 # %% Calculate decay factors
 # Injection time: 14:21:00
 # Scan start time: 14:59:04
@@ -121,5 +123,7 @@ fig_lineplot = ydisp.matshow_images_with_lineplot(
     margin_bottom=0.08,
     margin_left=0.07,
     ylabel="Activity [MBq/mL]",
+    linecolors=["#E69F00", 'blue', 'red']
 )
+plt.savefig(os.path.join(figures_dir, "derenzo_lineplots.pdf"), dpi=600)
 plt.show()
