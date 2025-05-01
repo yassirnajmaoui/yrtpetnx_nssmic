@@ -14,9 +14,9 @@ molar_recon_dir = (
     "/data2/Recons/kf283/2025_mic/yrt/20231002_RR584/injid_34473/listmode_001"
 )
 figures_dir = "/home1/yn257/work/data/yrtpetnx_nssmic/figures"
-unit_scale = 1.0 / 1000.0 # Bq to kBq
+unit_scale = 1.0 / 1000.0  # Bq to kBq
 molar_global = 3.188e-9
-frames_to_show = [7, 10, 15, 25]
+frames_to_show = [3, 9, 15, 25]
 
 # %% Defining the frame timings
 
@@ -49,13 +49,18 @@ for frame_i in frames_to_show:
     molar_recon_path = get_molar_image_path(molar_recon_dir, frame_i)
 
     molar_recon_image = sitk.ReadImage(molar_recon_path)
-    yrtpet_recon_image = sitk.ReadImage(yrtpet_recon_path) / (molar_global*frame_durations[frame_i]) / decay_factors[frame_i] / livetime_factors[frame_i]
+    yrtpet_recon_image = (
+        sitk.ReadImage(yrtpet_recon_path)
+        / (molar_global * frame_durations[frame_i])
+        / decay_factors[frame_i]
+        / livetime_factors[frame_i]
+    )
 
     molar_recon_images.append(molar_recon_image)
     yrtpet_recon_images.append(yrtpet_recon_image)
 
 
-pixel_size = [1.0, 0.8, 0.8]
+voxel_size = [1.0, 0.8, 0.8]
 # Dynamic
 
 vrange = [0, 50]
@@ -69,10 +74,10 @@ fig_slack_factors = [140, 0]  # x, y
 fig_height = (
     fig_width
     / (
-        len(frames_to_show) * (cbox[1] - cbox[0] + 1) * pixel_size[1]
+        len(frames_to_show) * (cbox[1] - cbox[0] + 1) * voxel_size[1]
         + fig_slack_factors[0]
     )
-    * (len(label_list) * (cbox[3] - cbox[2] + 1) * pixel_size[0] + fig_slack_factors[1])
+    * (len(label_list) * (cbox[3] - cbox[2] + 1) * voxel_size[0] + fig_slack_factors[1])
 )
 fig_ge = plt.figure()
 fig_ge.set_size_inches([fig_width, fig_height])
@@ -99,10 +104,17 @@ for lbl, ax_l, recon_images in zip(
         ax.set_xlim(cbox[:2][::-1])
         ax.set_ylim(cbox[2:][::-1])
         ax.set_aspect(img_sitk.GetSpacing()[2] / img_sitk.GetSpacing()[1])
-        text_label = (
-            f"{minute_start:02d}:{second_start:02d} to "
-            + f"{minute_end:02d}:{second_end:02d}"
-        )
+
+        if hour_start != 0 or hour_end != 0:
+            text_label = (
+                f"{hour_start:01d}:{minute_start:02d}:{second_start:02d} to "
+                + f"{hour_end:01d}:{minute_end:02d}:{second_end:02d}"
+            )
+        else:
+            text_label = (
+                f"{minute_start:02d}:{second_start:02d} to "
+                + f"{minute_end:02d}:{second_end:02d}"
+            )
         col_label = "({})".format(chr(ord("a") + frames_to_show.index(fr)))
         if lbl == label_list[0]:
             print(col_label + " from " + text_label)
@@ -126,7 +138,7 @@ for lbl, ax_l, recon_images in zip(
 cb_pos = ptplt.get_ax_pos_rel(
     ax_ref_list=axes[:, -1],
     pos="right",
-    offset_frac=0.35,
+    offset_frac=0.25,
     width_frac=0.1,
     height_frac=0.8,
 )

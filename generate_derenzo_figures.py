@@ -80,7 +80,7 @@ for i in range(len(yrtpet_recon_paths)):
 
 # %% Line plot
 
-unit_scale = 1.0 / 1000000.0  # Turn Bq to MBq
+unit_scale = 1.0 / 1000.0  # Turn Bq to kBq
 
 # Apply decay and livetime corrections
 urt_recon_to_show = (
@@ -118,11 +118,11 @@ fig_lineplot = ydisp.matshow_images_with_lineplot(
     labels=["URT", "MOLAR", "YRT-PET"],
     image_label_size=12,
     normalize=False,
-    vmaxs=[0.8, 0.8, 0.8],
+    vmaxs=[800, 800, 800],
     fig_height=6,
     margin_bottom=0.08,
     margin_left=0.07,
-    ylabel="Activity [MBq/mL]",
+    ylabel="Activity [kBq/mL]",
     linecolors=["#E69F00", 'blue', 'red']
 )
 plt.savefig(os.path.join(figures_dir, "derenzo_lineplots.pdf"), dpi=600)

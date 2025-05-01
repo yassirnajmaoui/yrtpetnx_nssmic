@@ -11,7 +11,7 @@ from molar_helper import *
 
 # %% Constants
 
-unit_scale = 1.0 / 1000000.0  # Turn Bq to MBq
+unit_scale = 1.0 / 1000.0  # Turn Bq to kBq
 figures_dir = "/home1/yn257/work/data/yrtpetnx_nssmic/figures"
 
 plot_monkey_slice: bool = True
@@ -24,7 +24,7 @@ if plot_monkey_slice:
     frame_to_show = 9
     yslice_to_show = 350
 
-    z_crop = (0, 410)
+    z_crop = (0, 300)
     x_crop = (140, 415)
 
     molar_recon_path = get_molar_image_path(molar_recon_dir, frame_to_show)
@@ -58,13 +58,13 @@ if plot_monkey_slice:
         ("MOLAR", "YRT-PET"),
         (24, 38, 132, 130),
         aspect=aspect,
-        vmaxs=(0.4, 0.4),
+        vmaxs=(400, 400),
         margin_image_label_x=0.01,
         margin_image_label_y=0.055,
         image_label_size=12,
         colorbar_frac=0.4,
         colorbar_labels_frac=0.85,
-        colorbar_title="[MBq/mL]",
+        colorbar_title="[kBq/mL]",
     )
     plt.savefig(os.path.join(figures_dir, "monkey_slice.pdf"), dpi=600)
     plt.show()
@@ -122,7 +122,7 @@ if plot_monkey_tacs:
         if i == 0:
             ax.legend()
         if i == 0 or i == 2:
-            ax.set_ylabel("Activity [MBq/mL]")
+            ax.set_ylabel("Activity [kBq/mL]")
         if i == 2 or i == 3:
             ax.set_xlabel("Time (s)")
 
