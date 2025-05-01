@@ -6,15 +6,22 @@ import matplotlib.pyplot as plt
 import yn_tools.display as ydisp
 import yn_tools.radioactive as yrad
 
+# %% Constants
+
 # iteration_range = range(0,7) # Full, for PSNR/iteration calculation
 iteration_range = range(6, 7)
 scan_duration = 599.951  # in s, around 10 minutes
 molar_global = 3.407e-9
 positron_fraction = 0.967
+unit_scale = 1.0 / 1000.0  # Turn Bq to kBq
 
 figures_dir = "/home1/yn257/work/data/yrtpetnx_nssmic/figures"
 
+plot_lineplot:bool = False
+plot_convergence:bool = True
+
 # %% Calculate decay factors
+
 # Injection time: 14:21:00
 # Scan start time: 14:59:04
 elapsed_injectiontime_to_scanstart = 38 * 60 + 4
@@ -80,50 +87,53 @@ for i in range(len(yrtpet_recon_paths)):
 
 # %% Line plot
 
-unit_scale = 1.0 / 1000.0  # Turn Bq to kBq
+if plot_lineplot:
 
-# Apply decay and livetime corrections
-urt_recon_to_show = (
-    urt_recon_images[-1]
-    * decay_factor_within_frame
-    / decay_factor_injectiontime_to_scanend
-    / livetime_factor
-    / positron_fraction
-) * unit_scale
-molar_recon_to_show = (
-    molar_recon_images[-1] / decay_factor_injectiontime_to_scanend
-) * unit_scale
-yrtpet_recon_to_show = (
-    yrtpet_recon_images[-1]
-    / (scan_duration * molar_global)
-    / decay_factor_injectiontime_to_scanend
-) * unit_scale
+    # Apply decay and livetime corrections
+    urt_recon_to_show = (
+        urt_recon_images[-1]
+        * decay_factor_within_frame
+        / decay_factor_injectiontime_to_scanend
+        / livetime_factor
+        / positron_fraction
+    ) * unit_scale
+    molar_recon_to_show = (
+        molar_recon_images[-1] / decay_factor_injectiontime_to_scanend
+    ) * unit_scale
+    yrtpet_recon_to_show = (
+        yrtpet_recon_images[-1]
+        / (scan_duration * molar_global)
+        / decay_factor_injectiontime_to_scanend
+    ) * unit_scale
 
-xlim = (235, 395)
-ylim = (297, 467)
+    xlim = (235, 395)
+    ylim = (297, 467)
 
-fig_lineplot = ydisp.matshow_images_with_lineplot(
-    [
-        urt_recon_to_show,
-        molar_recon_to_show,
-        yrtpet_recon_to_show,
-    ],
-    zslice=460,
-    x1=260,
-    y1=414,
-    x2=250,
-    y2=363,
-    xlim=xlim,
-    ylim=ylim,
-    labels=["URT", "MOLAR", "YRT-PET"],
-    image_label_size=12,
-    normalize=False,
-    vmaxs=[800, 800, 800],
-    fig_height=6,
-    margin_bottom=0.08,
-    margin_left=0.07,
-    ylabel="Activity [kBq/mL]",
-    linecolors=["#E69F00", 'blue', 'red']
-)
-plt.savefig(os.path.join(figures_dir, "derenzo_lineplots.pdf"), dpi=600)
-plt.show()
+    fig_lineplot = ydisp.matshow_images_with_lineplot(
+        [
+            urt_recon_to_show,
+            molar_recon_to_show,
+            yrtpet_recon_to_show,
+        ],
+        zslice=460,
+        x1=260,
+        y1=414,
+        x2=250,
+        y2=363,
+        xlim=xlim,
+        ylim=ylim,
+        labels=["URT", "MOLAR", "YRT-PET"],
+        image_label_size=12,
+        normalize=False,
+        vmaxs=[800, 800, 800],
+        fig_height=6,
+        margin_bottom=0.08,
+        margin_left=0.07,
+        ylabel="Activity [kBq/mL]",
+        linecolors=["#E69F00", 'blue', 'red']
+    )
+    plt.savefig(os.path.join(figures_dir, "derenzo_lineplots.pdf"), dpi=600)
+    plt.show()
+
+if plot_convergence:
+    pass
