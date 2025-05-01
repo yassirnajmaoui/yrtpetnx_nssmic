@@ -7,6 +7,7 @@ import yn_tools.image_manip as yimg
 import matplotlib.pyplot as plt
 import yn_tools.display as ydisp
 from monkey_helper import *
+from molar_helper import *
 
 # %% Constants
 

@@ -109,23 +109,6 @@ roi_names_clean = [
 ]
 num_rois = len(roi_names)
 
-
-def get_molar_image_path(molar_dir: str, frame: int, iteration: int = 7):
-    molar_recon_image_glob_path = os.path.join(
-        molar_dir, f"Frame{str(frame+1).zfill(3)}", f"*-{iteration}.img"
-    )
-    molar_recon_image_glob = glob.glob(molar_recon_image_glob_path)
-    if len(molar_recon_image_glob) > 1:
-        raise RuntimeError(
-            f"There is more than one MOLAR recon file in the folder for frame {frame_i}"
-        )
-    if len(molar_recon_image_glob) < 1:
-        raise RuntimeError(
-            f"There is no MOLAR recon file in the folder for frame {frame_i}"
-        )
-    molar_recon_image_path = molar_recon_image_glob[0]
-    return molar_recon_image_path
-
 def get_full_yrtpet_scale(frame_i: int):
     return (
         1
