@@ -5,11 +5,13 @@ import os
 import matplotlib.pyplot as plt
 import yn_tools.display as ydisp
 import yn_tools.radioactive as yrad
+from scipy.signal import find_peaks
+import skimage.measure as skm
 
 # %% Constants
 
-# iteration_range = range(0,7) # Full, for PSNR/iteration calculation
-iteration_range = range(6, 7)
+iteration_range = range(0, 7)  # Full, for metric/iteration calculation
+# iteration_range = range(6, 7)
 scan_duration = 599.951  # in s, around 10 minutes
 molar_global = 3.407e-9
 positron_fraction = 0.967
@@ -17,8 +19,10 @@ unit_scale = 1.0 / 1000.0  # Turn Bq to kBq
 
 figures_dir = "/home1/yn257/work/data/yrtpetnx_nssmic/figures"
 
-plot_lineplot: bool = True
+plot_lineplot: bool = False
 plot_convergence: bool = True
+
+linecolors = ["#E69F00", "blue", "red"] # URT, MOLAR, YRT-PET
 
 # %% Calculate decay factors
 
@@ -130,13 +134,138 @@ if plot_lineplot:
         margin_bottom=0.08,
         margin_left=0.07,
         ylabel="Activity [kBq/mL]",
-        linecolors=["#E69F00", "blue", "red"],
+        linecolors=linecolors,
     )
     plt.savefig(os.path.join(figures_dir, "derenzo_lineplots.pdf"), dpi=600)
     plt.show()
+
+# %% Helper function
+
+
+def get_peaks_and_valleys(profile, prominence_peaks=0.1, prominence_valleys=0.05):
+    # Find peaks (rods)
+    peaks, _ = find_peaks(profile, prominence=prominence_peaks)
+    peak_heights = profile[peaks]
+
+    # Find valleys (local minima between peaks)
+    inverted_profile = -profile
+    valleys, _ = find_peaks(inverted_profile, prominence=prominence_valleys)
+
+    # Optional: filter valleys that are between peaks only
+    valleys_between_peaks = []
+    for i in range(len(peaks) - 1):
+        left = peaks[i]
+        right = peaks[i + 1]
+        # Select valleys between current peak pair
+        mask = (valleys > left) & (valleys < right)
+        valleys_between_peaks.extend(valleys[mask])
+
+    valley_heights_between = profile[valleys_between_peaks]
+
+    return (peak_heights, valley_heights_between)
+
 
 # %% Convergence plot
 
 if plot_convergence:
 
-    pass
+    profile_line = ((414, 260), (363, 250))
+    zslice = 460
+
+    urt_profile_lines = list()
+    molar_profile_lines = list()
+    yrtpet_profile_lines = list()
+
+    for iteration in iteration_range:
+        urt_profile_line = skm.profile_line(
+            urt_recon_images_np[iteration][zslice], profile_line[0], profile_line[1]
+        )
+        urt_profile_lines.append(urt_profile_line)
+        molar_profile_line = skm.profile_line(
+            molar_recon_images_np[iteration][zslice], profile_line[0], profile_line[1]
+        )
+        molar_profile_lines.append(molar_profile_line)
+        yrtpet_profile_line = skm.profile_line(
+            yrtpet_recon_images_np[iteration][zslice], profile_line[0], profile_line[1]
+        )
+        yrtpet_profile_lines.append(yrtpet_profile_line)
+
+    urt_mean_pvrs = np.zeros(len(iteration_range))
+    molar_mean_pvrs = np.zeros(len(iteration_range))
+    yrtpet_mean_pvrs = np.zeros(len(iteration_range))
+
+    for iteration in iteration_range:
+        urt_profile_line = urt_profile_lines[iteration]
+        molar_profile_line = molar_profile_lines[iteration]
+        yrtpet_profile_line = yrtpet_profile_lines[iteration]
+
+        curr_urt_peaks, curr_urt_valleys = get_peaks_and_valleys(urt_profile_line)
+        urt_mean_pvrs[iteration] = np.mean(curr_urt_peaks) / np.mean(curr_urt_valleys)
+
+        curr_molar_peaks, curr_molar_valleys = get_peaks_and_valleys(molar_profile_line)
+        molar_mean_pvrs[iteration] = np.mean(curr_molar_peaks) / np.mean(
+            curr_molar_valleys
+        )
+
+        curr_yrtpet_peaks, curr_yrtpet_valleys = get_peaks_and_valleys(
+            yrtpet_profile_line
+        )
+        yrtpet_mean_pvrs[iteration] = np.mean(curr_yrtpet_peaks) / np.mean(
+            curr_yrtpet_valleys
+        )
+
+    iteration_axis_values = np.arange(
+        1, len(iteration_range) + 1
+    )  # iteration from 1 to 7
+
+    # Start figure
+    fig = plt.figure()
+    fig.set_size_inches([6, 3])
+    grid = fig.add_gridspec(
+        1,
+        1,
+        height_ratios=[1],
+        width_ratios=[1],
+    )
+    ax = fig.add_subplot(grid[0, 0])
+    fig.subplots_adjust(
+        left=0.1,
+        right=0.95,
+        top=0.95,
+        bottom=0.15,
+        hspace=0.01,
+        wspace=0.01,
+    )
+
+    ax.plot(
+        iteration_axis_values,
+        urt_mean_pvrs,
+        label="URT",
+        linestyle="-",
+        marker=".",
+        color=linecolors[0]
+    )
+    ax.plot(
+        iteration_axis_values,
+        molar_mean_pvrs,
+        label="MOLAR",
+        linestyle="-",
+        marker=".",
+        color=linecolors[1]
+    )
+    ax.plot(
+        iteration_axis_values,
+        yrtpet_mean_pvrs,
+        label="YRT-PET",
+        linestyle="-",
+        marker=".",
+        color=linecolors[2]
+    )
+    ax.legend()
+    ax.set_xlabel("Iteration")
+    ax.set_ylabel("Mean Peak-to-Valley Ratio")
+    ax.set_xlim((0, None))
+    ax.grid(True, linestyle="--", alpha=0.6)
+
+    plt.savefig(os.path.join(figures_dir, "derenzo_pvrs.pdf"), dpi=600)
+    plt.show()
