@@ -11,7 +11,7 @@ import skimage.measure as skm
 # %% Constants
 
 iteration_range = range(0, 7)  # Full, for metric/iteration calculation
-# iteration_range = range(6, 7)
+#iteration_range = range(6, 7)
 scan_duration = 599.951  # in s, around 10 minutes
 molar_global = 3.407e-9
 positron_fraction = 0.967

@@ -124,7 +124,7 @@ if plot_monkey_tacs:
         if i == 0 or i == 2:
             ax.set_ylabel("Activity [kBq/mL]")
         if i == 2 or i == 3:
-            ax.set_xlabel("Time (s)")
+            ax.set_xlabel("Time [s]")
 
     plt.savefig(os.path.join(figures_dir, "monkey_tacs.pdf"), dpi=600)
     plt.show()
