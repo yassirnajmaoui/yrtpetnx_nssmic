@@ -15,7 +15,7 @@ unit_scale = 1.0 / 1000.0  # Turn Bq to kBq
 figures_dir = "/home1/yn257/work/data/yrtpetnx_nssmic/figures"
 
 plot_monkey_slice: bool = True
-plot_monkey_tacs: bool = True
+plot_monkey_tacs: bool = False
 
 # %% Plot monkey frame with zoom
 
