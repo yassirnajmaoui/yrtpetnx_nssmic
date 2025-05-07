@@ -89,7 +89,7 @@ if plot_monkey_tacs:
 
     fig, axs = plt.subplots(2, 2, figsize=(5, 3), sharex=True, sharey=True)
     fig.subplots_adjust(
-        left=0.15, right=0.99, top=0.9, bottom=0.15, hspace=0.25, wspace=0.04
+        left=0.1, right=0.99, top=0.93, bottom=0.12, hspace=0.25, wspace=0.04
     )
 
     axs = axs.flatten()  # Flatten to iterate easily
