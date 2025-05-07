@@ -10,8 +10,8 @@ import skimage.measure as skm
 
 # %% Constants
 
-iteration_range = range(0, 7)  # Full, for metric/iteration calculation
-#iteration_range = range(6, 7)
+#iteration_range = range(0, 7)  # Full, for metric/iteration calculation
+iteration_range = range(6, 7)
 scan_duration = 599.951  # in s, around 10 minutes
 molar_global = 3.407e-9
 positron_fraction = 0.967
@@ -19,8 +19,8 @@ unit_scale = 1.0 / 1000.0  # Turn Bq to kBq
 
 figures_dir = "/home1/yn257/work/data/yrtpetnx_nssmic/figures"
 
-plot_lineplot: bool = False
-plot_convergence: bool = True
+plot_lineplot: bool = True
+plot_convergence: bool = False
 
 linecolors = ["#E69F00", "blue", "red"] # URT, MOLAR, YRT-PET
 
@@ -126,15 +126,23 @@ if plot_lineplot:
         y2=363,
         xlim=xlim,
         ylim=ylim,
-        labels=["URT", "MOLAR", "YRT-PET"],
-        image_label_size=12,
+        labels=["URT no PSF", "MOLAR no PSF", "YRT-PET no PSF"],
+        image_label_fontsize=8,
+        xlabel_fontsize=8,
+        ylabel_fontsize=8,
+        ticklabel_fontsize=7,
+        legend_fontsize=7,
+        linewidth=0.75,
         normalize=False,
         vmaxs=[800, 800, 800],
-        fig_height=6,
-        margin_bottom=0.08,
-        margin_left=0.07,
+        fig_height=3,
+        margin_bottom=0.12,
+        margin_left=0.12,
         ylabel="Activity [kBq/mL]",
         linecolors=linecolors,
+        fig_slack_factors=(5, 0),
+        xmargin_image_label=0.01,
+        ymargin_image_label=0.07
     )
     plt.savefig(os.path.join(figures_dir, "derenzo_lineplots.pdf"), dpi=600)
     plt.show()

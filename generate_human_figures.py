@@ -55,22 +55,46 @@ for frame_i in frames_to_show:
         / decay_factors[frame_i]
         / livetime_factors[frame_i]
     )
+    yrtpet_recon_image = sitk.Cast(yrtpet_recon_image, sitk.sitkFloat32)
+    molar_recon_image.SetOrigin(yrtpet_recon_image.GetOrigin())
 
     molar_recon_images.append(molar_recon_image)
     yrtpet_recon_images.append(yrtpet_recon_image)
 
+# %% Compute difference image
+
+diff_images = list()
+for i in range(len(molar_recon_images)):
+    yrtpet_recon_image_np = sitk.GetArrayViewFromImage(yrtpet_recon_images[i])
+    molar_recon_image_np = sitk.GetArrayViewFromImage(molar_recon_images[i])
+    diff_image_np = molar_recon_image_np - yrtpet_recon_image_np
+    diff_image = sitk.GetImageFromArray(diff_image_np)
+    diff_image.SetSpacing(yrtpet_recon_images[i].GetSpacing())
+    diff_images.append(diff_image)
+
+show_diff_image:bool = False
+
 
 voxel_size = [1.0, 0.8, 0.8]
-# Dynamic
 
-vrange = [0, 50]
-slice_x = 336
+# %% Generate figure
+
+vranges = [[0, 50], [0, 50]]
 label_list = ["MOLAR", "YRT-PET"]
+colormaps = ["gray", "gray"]
+if show_diff_image:
+    colormaps.append("seismic")
+    label_list.append("Difference")
+    vranges.append([-4, 4])
+slice_x = 336
+
 # [x0, x1, y0, y1]
-cbox = [200, 470, 145, 365]
+cbox = [210, 420, 165, 335]
+
+h_ims = list()
 
 fig_width = 6
-fig_slack_factors = [140, 0]  # x, y
+fig_slack_factors = [90, 0]  # x, y
 fig_height = (
     fig_width
     / (
@@ -83,11 +107,15 @@ fig_ge = plt.figure()
 fig_ge.set_size_inches([fig_width, fig_height])
 axes = fig_ge.subplots(nrows=len(label_list), ncols=len(frames_to_show))
 fig_ge.subplots_adjust(
-    left=0.05, right=0.84, top=0.9, bottom=0, hspace=0.01, wspace=0.01
+    left=0.04, right=0.85, top=0.92, bottom=0, hspace=0.01, wspace=0.01
 )
 
-for lbl, ax_l, recon_images in zip(
-    label_list, axes, [molar_recon_images, yrtpet_recon_images]
+recon_images_groups = [molar_recon_images, yrtpet_recon_images]
+if show_diff_image:
+    recon_images_groups.append(diff_images)
+
+for lbl, ax_l, recon_images, vrange, colormap in zip(
+    label_list, axes, recon_images_groups, vranges, colormaps
 ):
     for i, fr, ax in zip(range(len(frames_to_show)), frames_to_show, ax_l):
 
@@ -97,9 +125,9 @@ for lbl, ax_l, recon_images in zip(
 
         img_sitk = recon_images[i]
         img_np = sitk.GetArrayFromImage(img_sitk) * unit_scale
-        h_im = ax.matshow(
-            img_np[:, :, slice_x], vmin=vrange[0], vmax=vrange[1], cmap="gray"
-        )
+        h_ims.append(ax.matshow(
+            img_np[:, :, slice_x], vmin=vrange[0], vmax=vrange[1], cmap=colormap
+        ))
         ax.set_axis_off()
         ax.set_xlim(cbox[:2][::-1])
         ax.set_ylim(cbox[2:][::-1])
@@ -132,11 +160,14 @@ for lbl, ax_l, recon_images in zip(
         lbl,
         ha="right",
         va="center",
-        fontsize=9,
+        fontsize=11,
         rotation=90,
     )
+
+ax_ref_list = axes[:-1, -1] if show_diff_image else axes[:, -1]
+
 cb_pos = ptplt.get_ax_pos_rel(
-    ax_ref_list=axes[:, -1],
+    ax_ref_list=ax_ref_list,
     pos="right",
     offset_frac=0.25,
     width_frac=0.1,
@@ -145,7 +176,21 @@ cb_pos = ptplt.get_ax_pos_rel(
 cb_ax = fig_ge.add_axes(
     [cb_pos[0], cb_pos[1], cb_pos[2] - cb_pos[0], cb_pos[3] - cb_pos[1]]
 )
-fig_ge.colorbar(h_im, cax=cb_ax)
-cb_ax.set_title("[kBq/mL]", fontsize=8)
+fig_ge.colorbar(h_ims[0], cax=cb_ax)
+
+if show_diff_image:
+    cb_pos_diff = ptplt.get_ax_pos_rel(
+        ax_ref_list=[axes[-1, -1]],
+        pos="right",
+        offset_frac=0.25,
+        width_frac=0.1,
+        height_frac=0.8,
+    )
+    cb_ax_diff = fig_ge.add_axes(
+        [cb_pos_diff[0], cb_pos_diff[1], cb_pos_diff[2] - cb_pos_diff[0], cb_pos_diff[3] - cb_pos_diff[1]]
+    )
+    fig_ge.colorbar(h_ims[-1], cax=cb_ax_diff)
+
+cb_ax.set_title("[kBq/mL]", fontsize=9)
 plt.savefig(os.path.join(figures_dir, "human_slices.pdf"), dpi=600)
 plt.show()
