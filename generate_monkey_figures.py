@@ -14,8 +14,8 @@ from molar_helper import *
 unit_scale = 1.0 / 1000.0  # Turn Bq to kBq
 figures_dir = "/home1/yn257/work/data/yrtpetnx_nssmic/figures"
 
-plot_monkey_slice: bool = False
-plot_monkey_tacs: bool = True
+plot_monkey_slice: bool = True
+plot_monkey_tacs: bool = False
 
 # %% Plot monkey frame with zoom
 
@@ -59,12 +59,16 @@ if plot_monkey_slice:
         aspect=aspect,
         vmaxs=(400, 400),
         margin_image_label_x=0.01,
-        margin_image_label_y=0.055,
-        image_label_size=12,
+        margin_image_label_y=0.06,
+        image_label_fontsize=8,
         colorbar_frac=0.3,
-        colorbar_labels_frac=0.75,
+        colorbar_labels_frac=0.8,
+        colorbar_height_frac=0.7,
         colorbar_title="[kBq/mL]",
-        fig_height=3,
+        colorbar_title_fontsize=7,
+        colorbar_title_pad=10,
+        colorbar_ticklabel_fontsize=7,
+        fig_width=3.5,
     )
     plt.savefig(os.path.join(figures_dir, "monkey_slice.pdf"), dpi=600)
     plt.show()
@@ -87,13 +91,13 @@ if plot_monkey_tacs:
 
     rois_to_show = [3, 5, 15, 16]
 
-    fig, axs = plt.subplots(2, 2, figsize=(5, 3), sharex=True, sharey=True)
+    fig, axs = plt.subplots(2, 2, figsize=(3.5, 3), sharex=True, sharey=True)
     fig.subplots_adjust(
-        left=0.1, right=0.99, top=0.93, bottom=0.12, hspace=0.25, wspace=0.04
+        left=0.15, right=0.99, top=0.92, bottom=0.13, hspace=0.25, wspace=0.07
     )
 
     axs = axs.flatten()  # Flatten to iterate easily
-    timeaxis = np.array(frame_ranges).mean(axis=1)
+    timeaxis = np.array(frame_ranges).mean(axis=1) / 60
 
     ylim = (0, np.max(molar_roi_tacs) * 1.05)
 
@@ -115,21 +119,23 @@ if plot_monkey_tacs:
             marker=".",
             color="red",
         )
-        ax.set_title(roi_names_clean[roi_to_show], fontsize=10)
+        ax.set_title(roi_names_clean[roi_to_show], fontsize=9)
         ax.grid(True, linestyle="--", alpha=0.6)
         ax.set_xlim((0, None))
         ax.set_ylim(ylim)
         for ticklabel in ax.get_yticklabels():
-            ticklabel.set_fontsize(7)
+            ticklabel.set_fontsize(6)
         for ticklabel in ax.get_xticklabels():
-            ticklabel.set_fontsize(7)
+            ticklabel.set_fontsize(6)
 
         if i == 3:
-            ax.legend()
+            ax.legend(fontsize=7)
         if i == 0 or i == 2:
-            ax.set_ylabel("Activity [kBq/mL]", fontsize=8)
+            ax.set_ylabel("Activity [kBq/mL]", fontsize=7)
         if i == 2 or i == 3:
-            ax.set_xlabel("Time [s]", fontsize=8)
+            ax.set_xlabel("Time [min]", fontsize=7)
+        ax.xaxis.set_ticks(np.arange(0, np.max(timeaxis)+1, 15))
+        ax.yaxis.set_ticks(np.arange(0, ylim[1], 100))
 
     plt.savefig(os.path.join(figures_dir, "monkey_tacs.pdf"), dpi=600)
     plt.show()

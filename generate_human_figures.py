@@ -6,6 +6,7 @@ import os
 import matplotlib.pyplot as plt
 import python_tools.plot as ptplt
 from molar_helper import *
+import skimage.measure as skm
 
 # %% Constants
 
@@ -17,6 +18,7 @@ figures_dir = "/home1/yn257/work/data/yrtpetnx_nssmic/figures"
 unit_scale = 1.0 / 1000.0  # Bq to kBq
 molar_global = 3.188e-9
 frames_to_show = [3, 9, 15, 25]
+frame_of_lineplot = 15
 
 # %% Defining the frame timings
 
@@ -61,61 +63,75 @@ for frame_i in frames_to_show:
     molar_recon_images.append(molar_recon_image)
     yrtpet_recon_images.append(yrtpet_recon_image)
 
-# %% Compute difference image
-
-diff_images = list()
-for i in range(len(molar_recon_images)):
-    yrtpet_recon_image_np = sitk.GetArrayViewFromImage(yrtpet_recon_images[i])
-    molar_recon_image_np = sitk.GetArrayViewFromImage(molar_recon_images[i])
-    diff_image_np = molar_recon_image_np - yrtpet_recon_image_np
-    diff_image = sitk.GetImageFromArray(diff_image_np)
-    diff_image.SetSpacing(yrtpet_recon_images[i].GetSpacing())
-    diff_images.append(diff_image)
-
-show_diff_image:bool = False
-
-
 voxel_size = [1.0, 0.8, 0.8]
+
 
 # %% Generate figure
 
 vranges = [[0, 50], [0, 50]]
 label_list = ["MOLAR", "YRT-PET"]
 colormaps = ["gray", "gray"]
-if show_diff_image:
-    colormaps.append("seismic")
-    label_list.append("Difference")
-    vranges.append([-4, 4])
 slice_x = 336
+
+linecolors = ["blue", "red"]
+linewidth = 1
+lineplot_coords = 351, 179, 233, 210  # x1, y1, x2, y2
+line_profiles = list()
+lineplot_ax_frac = 1.2
 
 # [x0, x1, y0, y1]
 cbox = [210, 420, 165, 335]
+colorbar_width_ratio = 0.4
 
 h_ims = list()
 
 fig_width = 6
-fig_slack_factors = [90, 0]  # x, y
+fig_slack_factors = [75, 0]  # x, y
 fig_height = (
     fig_width
     / (
         len(frames_to_show) * (cbox[1] - cbox[0] + 1) * voxel_size[1]
         + fig_slack_factors[0]
     )
-    * (len(label_list) * (cbox[3] - cbox[2] + 1) * voxel_size[0] + fig_slack_factors[1])
+    * (
+        (len(label_list) + lineplot_ax_frac) * (cbox[3] - cbox[2] + 1) * voxel_size[0]
+        + fig_slack_factors[1]
+    )
 )
-fig_ge = plt.figure()
-fig_ge.set_size_inches([fig_width, fig_height])
-axes = fig_ge.subplots(nrows=len(label_list), ncols=len(frames_to_show))
-fig_ge.subplots_adjust(
-    left=0.04, right=0.85, top=0.92, bottom=0, hspace=0.01, wspace=0.01
+
+fig = plt.figure()
+fig.set_size_inches([fig_width, fig_height])
+
+nrows = len(label_list) + 1  # +1 for lineplot
+ncols = len(frames_to_show)
+
+grid = fig.add_gridspec(
+    nrows,
+    ncols,
+    height_ratios=[
+        1,
+        1,
+        lineplot_ax_frac,
+    ],
+    width_ratios=[1] * len(frames_to_show),
 )
+
+fig.subplots_adjust(
+    left=0.1, right=0.88, top=0.95, bottom=0.1, hspace=0.01, wspace=0.01
+)
+
+axes_img = list()
+for i in range(len(label_list)):
+    curr_axes_img = list()
+    for j in range(len(frames_to_show)):
+        curr_axes_img.append(fig.add_subplot(grid[i, j]))
+    axes_img.append(curr_axes_img)
+
 
 recon_images_groups = [molar_recon_images, yrtpet_recon_images]
-if show_diff_image:
-    recon_images_groups.append(diff_images)
 
-for lbl, ax_l, recon_images, vrange, colormap in zip(
-    label_list, axes, recon_images_groups, vranges, colormaps
+for lbl, ax_l, recon_images, vrange, colormap, linecolor in zip(
+    label_list, axes_img, recon_images_groups, vranges, colormaps, linecolors
 ):
     for i, fr, ax in zip(range(len(frames_to_show)), frames_to_show, ax_l):
 
@@ -125,9 +141,10 @@ for lbl, ax_l, recon_images, vrange, colormap in zip(
 
         img_sitk = recon_images[i]
         img_np = sitk.GetArrayFromImage(img_sitk) * unit_scale
-        h_ims.append(ax.matshow(
-            img_np[:, :, slice_x], vmin=vrange[0], vmax=vrange[1], cmap=colormap
-        ))
+        img_slice_np = img_np[:, :, slice_x]
+        h_ims.append(
+            ax.matshow(img_slice_np, vmin=vrange[0], vmax=vrange[1], cmap=colormap)
+        )
         ax.set_axis_off()
         ax.set_xlim(cbox[:2][::-1])
         ax.set_ylim(cbox[2:][::-1])
@@ -154,6 +171,26 @@ for lbl, ax_l, recon_images, vrange, colormap in zip(
                 va="bottom",
                 fontsize=9,
             )
+        if fr == frame_of_lineplot:
+            x1, y1, x2, y2 = lineplot_coords
+
+            line_profile = skm.profile_line(img_slice_np, (y1, x1), (y2, x2))
+            line_profiles.append(line_profile)
+
+            # Draw two lines, one white behind and one colored in front
+            for [curr_linecolor, curr_linewidth] in zip(
+                ["white", linecolor], [linewidth * 1.5, linewidth]
+            ):
+                ax.annotate(
+                    "",  # No text
+                    xy=(x2, y2),  # End of the arrow
+                    xytext=(x1, y1),  # Start of the arrow
+                    arrowprops=dict(
+                        arrowstyle="->",  # Simple arrow
+                        lw=curr_linewidth,  # Line width
+                        color=curr_linecolor,  # Arrow color
+                    ),
+                )
     ax_l[0].text(
         np.max(ax_l[0].get_xlim()),
         np.mean(ax_l[0].get_ylim()),
@@ -164,8 +201,9 @@ for lbl, ax_l, recon_images, vrange, colormap in zip(
         rotation=90,
     )
 
-ax_ref_list = axes[:-1, -1] if show_diff_image else axes[:, -1]
+ax_ref_list = [ax_l[-1] for ax_l in axes_img]
 
+# Add colorbar
 cb_pos = ptplt.get_ax_pos_rel(
     ax_ref_list=ax_ref_list,
     pos="right",
@@ -173,24 +211,31 @@ cb_pos = ptplt.get_ax_pos_rel(
     width_frac=0.1,
     height_frac=0.8,
 )
-cb_ax = fig_ge.add_axes(
+cb_ax = fig.add_axes(
     [cb_pos[0], cb_pos[1], cb_pos[2] - cb_pos[0], cb_pos[3] - cb_pos[1]]
 )
-fig_ge.colorbar(h_ims[0], cax=cb_ax)
-
-if show_diff_image:
-    cb_pos_diff = ptplt.get_ax_pos_rel(
-        ax_ref_list=[axes[-1, -1]],
-        pos="right",
-        offset_frac=0.25,
-        width_frac=0.1,
-        height_frac=0.8,
-    )
-    cb_ax_diff = fig_ge.add_axes(
-        [cb_pos_diff[0], cb_pos_diff[1], cb_pos_diff[2] - cb_pos_diff[0], cb_pos_diff[3] - cb_pos_diff[1]]
-    )
-    fig_ge.colorbar(h_ims[-1], cax=cb_ax_diff)
-
+fig.colorbar(h_ims[0], cax=cb_ax)
 cb_ax.set_title("[kBq/mL]", fontsize=9)
+
+# Add line plots
+line_profile_distance_y = (lineplot_coords[2] - lineplot_coords[0]) * voxel_size[1]
+line_profile_distance_z = (lineplot_coords[3] - lineplot_coords[1]) * voxel_size[0]
+line_profile_distance = np.sqrt(line_profile_distance_y**2 + line_profile_distance_z**2)
+
+num = max([line_profiles[i].shape[0] for i in range(len(line_profiles))])
+line_profile_distance_linspace = np.linspace(0, line_profile_distance, num)
+ax_lineplot = fig.add_subplot(grid[-1, :])
+
+for line_profile, label, linecolor in zip(line_profiles, label_list, linecolors):
+    ax_lineplot.plot(
+        line_profile_distance_linspace, line_profile, label=label, color=linecolor
+    )
+ax_lineplot.set_ylabel("Activity [kBq/mL]")
+ax_lineplot.set_xlabel("Distance [mm]")
+ax_lineplot.set_xlim((0, np.max(line_profile_distance_linspace)))
+ax_lineplot.set_ylim((0, None))
+ax_lineplot.legend(fontsize=8)
+
+
 plt.savefig(os.path.join(figures_dir, "human_slices.pdf"), dpi=600)
 plt.show()
